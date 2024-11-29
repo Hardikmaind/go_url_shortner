@@ -5,10 +5,11 @@ import (
 	"log"
 	"os"
 
+	"github.com/Hardikmaind/go_url_shortner/db"
+	"github.com/Hardikmaind/go_url_shortner/routes"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/joho/godotenv"
-	 "github.com/Hardikmaind/go_url_shortner/routes"
 )
 
 func setupRoutes(app *fiber.App) {
@@ -16,7 +17,7 @@ func setupRoutes(app *fiber.App) {
 	app.Post("/:api/v1", routes.ShortenUrl)
 }
 func main() {
-
+	err := godotenv.Load()
 	/*func godotenv.Load(filenames ...string) (err error)
 	Load will read your env file(s) and load them into ENV for this process.
 
@@ -29,8 +30,12 @@ func main() {
 	godotenv.Load("fileone", "filetwo")
 	It's important to note that it WILL NOT OVERRIDE an env variable that already exists - consider the .env file to set dev vars or sensible defaults.*/
 
-	
-	err := godotenv.Load()
+
+
+
+	db.InitRedisClient()			//! HERE WE INITIALIZE THE NEW REDIS INSTANCE
+	defer db.CreateClient.Close()
+
 
 	if err != nil {
 		fmt.Println("Error loading .env file")

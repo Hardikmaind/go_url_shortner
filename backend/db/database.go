@@ -7,16 +7,32 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-//? this below context will be exported in the resolve.go file and will be used to create a context for the redis client
-var Ctx = context.Background()			//! this is a global variable which is used to create a context for the redis client
-//first letter of function name should be capital to make it public and to export it to other packages
-func CreateClient(dbNo int) *redis.Client {
-	rdb := redis.NewClient(&redis.Options{
+// ? this below context will be exported in the resolve.go file and will be used to create a context for the redis client
+//! this is a global variable which is used to create a context for the redis client
+var (
+	Ctx          = context.Background()
+	CreateClient *redis.Client
+)
+
+
+// first letter of function name should be capital to make it public and to export it to other packages
+func InitRedisClient() {
+	CreateClient = redis.NewClient(&redis.Options{
 		Addr:     os.Getenv("db_addr"),
-		DB:       dbNo,
+		DB:       0,
 		Password: os.Getenv("dp_pass"),
 	})
 
-	// Use ctx if needed for further operations
-	return rdb
+}
+
+
+//! THIS WE CAN USE IF WE NEED TO CREATE A NEW DB WITH .
+//? Yes, by default, Redis provides 16 databases (numbered 0 to 15) in a single instance. .
+// Utility function for specific DB numbers, if needed
+func GetClientForDB(dbNo int) *redis.Client {
+	return redis.NewClient(&redis.Options{
+		Addr:     os.Getenv("db_addr"),
+		Password: os.Getenv("db_pass"),
+		DB:       dbNo,
+	})
 }

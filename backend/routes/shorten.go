@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -39,28 +40,89 @@ func ShortenUrl(c *fiber.Ctx) error {
 		})
 	}
 
-	//! Implement Rate Limiting here
+	//!TODO: Implement Rate Limiting here
 
-	r2 := db.CreateClient(1) //this is the client for the rate limiting. we are creating a new client for the rate limiting. we can also use the same client which we used for the url shortening. but it is a good practice to use a different client for the rate limiting.
-	defer r2.Close()
+	//r2 := db.CreateClient(1) //this is the client for the rate limiting. we are creating a new client for the rate limiting. we can also use the same client which we used for the url shortening. but it is a good practice to use a different client for the rate limiting.
 
-	val, err := r2.Get(db.Ctx, c.IP()).Result()
+	r := db.CreateClient //? this is the  client to same redis database which was initialised in main.go file. we are using the same client for the rate limiting. we can also use a different client for the rate limiting. but it is a good practice to use the same client for the rate limiting and the url shortening. and why create the redis client for each request to resolve function.
+	//defer r.Close()		//SINCE THIS IS THE SAME CLIENT IN THE MAIN.GO..WE WILL TERMINATE THIS CLIENT WHEN THE APPLICATION TERMINATES. SO WE WILL WRITE THIS LINE IN MAIN.GO INSTED OF HERE.
+
+	//! ALSO WE CAN USE THE SAME DB FOR COUNTER AND KEY VALUUE. ALSO WE CAN USE MULTIPLE COUNTER IN THE SAME REDIS DB
+
+	// _, err := r.Get(db.Ctx, c.IP()).Result()
+	// if err == redis.Nil {
+	// 	r.Set(db.Ctx, c.IP(), os.Getenv("api_quota"), 30*time.Minute).Err()
+	// } else {
+	// 	// val, _ := r2.Get(db.Ctx, c.IP()).Result()			//instead of this we can dirctly get the val in int format by val,_:=r2.Get(db.Ctx,c.IP()).Int()
+	// 	// valInt, _ := strconv.Atoi(val)
+	// 	valInt, _ := r.Get(db.Ctx, c.IP()).Int()
+	// 	if valInt <= 0 {
+	// 		limit, _ := r.TTL(db.Ctx, c.IP()).Result() //this will return the time left for the key to expire.in this case the key is the ip address of the user.
+	// 		return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+	// 			"error":      "Rate limit exceeded",
+	// 			"retryAfter": limit / time.Nanosecond / time.Minute,
+	// 		})
+	// 	}
+	// }
+
+	//=============================================================================================
+	// _, err := r.Get(db.Ctx, c.IP()).Result()
+	// if err == redis.Nil {
+	// 	//! Set rate limit and expiration for new IP
+	// 	err := r.Set(db.Ctx, c.IP(), os.Getenv("api_quota"), time.Minute).Err()
+	// 	if err != nil {
+	// 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+	// 			"error": "Failed to set rate limit",
+	// 		})
+	// 	}
+	// } else {
+	// 	valInt, _ := r.Get(db.Ctx, c.IP()).Int()
+	// 	if valInt <= 0 {
+	// 		fmt.Println("hello world")
+	// 		limit, _ := r.TTL(db.Ctx, c.IP()).Result()
+	// 		if limit <= 0 {
+	// 			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+	// 				"error":      "Rate limit exceeded",
+	// 				"retryAfter": -1,
+	// 			})
+	// 		}
+	// 		return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+	// 			"error":      "Rate limit exceeded",
+	// 			"retryAfter": int(limit.Seconds() / 60), //convert the time to minutes
+	// 		})
+	// 	}
+	// }
+	//=============================================================================================
+	_, err := r.Get(db.Ctx, c.IP()).Result()
 	if err == redis.Nil {
-		r2.Set(db.Ctx, c.IP(), os.Getenv("api_quota"), 30*time.Minute).Err()
+		//! Set rate limit and expiration for new IP
+		err := r.Set(db.Ctx, c.IP(), os.Getenv("api_quota"), time.Minute).Err() // Set key with 1-minute expiration
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to set rate limit",
+			})
+		}
 	} else {
-		// val, _ := r2.Get(db.Ctx, c.IP()).Result()			//instead of this we can dirctly get the val in int format by val,_:=r2.Get(db.Ctx,c.IP()).Int()
-		// valInt, _ := strconv.Atoi(val)
-		valInt, _ := r2.Get(db.Ctx, c.IP()).Int()
+		valInt, _ := r.Get(db.Ctx, c.IP()).Int()
 		if valInt <= 0 {
-			limit, _ := r2.TTL(db.Ctx, c.IP()).Result() //this will return the time left for the key to expire.in this case the key is the ip address of the user.
+			limit, _ := r.TTL(db.Ctx, c.IP()).Result() // Check TTL for the current IP
+
+			if limit <= 0 { // If TTL has expired (or not set)
+				return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+					"error":      "Rate limit exceeded",
+					"retryAfter": 1, // Retry after 1 minute
+				})
+			}
+
+			// If TTL is still valid, return retry time in minutes
 			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
 				"error":      "Rate limit exceeded",
-				"retryAfter": limit / time.Nanosecond / time.Minute,
+				"retryAfter": int(limit.Seconds() / 60), // Convert to minutes
 			})
 		}
 	}
 
-	// ! check whether the input is an actual URl
+	//!TODO: check whether the input is an actual URl
 
 	if !govalidator.IsURL(reqbody.URL) {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -68,14 +130,14 @@ func ShortenUrl(c *fiber.Ctx) error {
 		})
 	}
 
-	//! check for domain error...(check whether the use is not using the localhost or any other domain which is not allowed)
+	//!TODO:  check for domain error...(check whether the use is not using the localhost or any other domain which is not allowed)
 	if !helpers.IsRequestURLAllowed(reqbody.URL) {
 		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
 			"error": "This URL is not allowed",
 		})
 	}
 
-	//! enfore https/SSL
+	//!tODO: enfore https/SSL
 	//* method 1. this we can do to validate
 	/*
 		if reqbody.URL[:5] != "https" {
@@ -90,11 +152,11 @@ func ShortenUrl(c *fiber.Ctx) error {
 
 	id := reqbody.CustomShort
 	if id == "" {
-		id = helpers.GenerateRandomString(6)
+		id = helpers.GenerateRandomString(7)
 	}
-
-	r := db.CreateClient(0)
-	defer r.Close()
+	fmt.Println("id:", id)
+	//! WE HAVE ALREADY CREATED THE CLIENT FOR IT SEE ABOVE.
+	//r := db.CreateClient			//? this is the  client to same redis database which was initialised in main.go file. we are using the same client for the rate limiting. we can also use a different client for the rate limiting. but it is a good practice to use the same client for the rate limiting and the url shortening. and why create the redis client for each request to resolve function.
 
 	if exists, _ := r.Exists(db.Ctx, id).Result(); exists > 0 {
 		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
@@ -112,9 +174,9 @@ func ShortenUrl(c *fiber.Ctx) error {
 		})
 	}
 
-	remainingQuota, _ := r2.Decr(db.Ctx, c.IP()).Result() //decrement the count of the ip address by 1
+	remainingQuota, _ := r.Decr(db.Ctx, c.IP()).Result() //decrement the count of the ip address by 1
 	if remainingQuota < 0 {
-		ttl, _ := r2.TTL(db.Ctx, c.IP()).Result()
+		ttl, _ := r.TTL(db.Ctx, c.IP()).Result()
 		return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
 			"error":      "Rate limit exceeded",
 			"retryAfter": ttl / time.Second,
@@ -122,8 +184,7 @@ func ShortenUrl(c *fiber.Ctx) error {
 	}
 	domain := os.Getenv("domain")
 
-
-	//! return the response
+	//!TODO: return the response
 	//? this is method 1
 	// resp:=new(Response)
 	// resp.URL=reqbody.URL
@@ -138,7 +199,7 @@ func ShortenUrl(c *fiber.Ctx) error {
 		CustomShort:    domain + "/" + id,
 		Expiry:         reqbody.ExpiryDate,
 		XRateRemaining: int(remainingQuota),
-		XRateLimitRest: r2.TTL(db.Ctx, c.IP()).Val() / time.Second,
+		XRateLimitRest: r.TTL(db.Ctx, c.IP()).Val() / time.Second,
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(resp)
