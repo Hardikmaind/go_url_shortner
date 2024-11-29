@@ -6,7 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func resolveUrl(c *fiber.Ctx) error {
+func ResolveUrl(c *fiber.Ctx) error {
 	url := c.Params("url")
 
 	r := db.CreateClient(0)				//now here everytime a resolveUrl function is called, a new redis client is created and then closed. This is not a good practice. So we will create a single redis client(shared rdb) and use it everywhere.
