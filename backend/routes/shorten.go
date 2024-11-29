@@ -1,9 +1,13 @@
 package routes
 
 import (
+	"os"
+	"strconv"
 	"time"
 
-	govalidator "github.com/Hardikmaind/go_url_shortner/helpers"
+	"github.com/Hardikmaind/go_url_shortner/db"
+	"github.com/Hardikmaind/go_url_shortner/helpers"
+	"github.com/go-redis/redis/v8"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -37,6 +41,24 @@ func shortenUrl(c *fiber.Ctx) error {
 
 	//! Implement Rate Limiting here
 
+	r2 := db.CreateClient(1)
+	defer r2.Close()
+	val, err := r2.Get(db.Ctx, c.IP()).Result()
+	if err == redis.Nil {
+		r2.Set(db.Ctx, c.IP(), os.Getenv("api_quota"), 30*time.Minute).Err()
+	} else {
+		// val, _ := r2.Get(db.Ctx, c.IP()).Result()			//instead of this we can dirctly get the val in int format by val,_:=r2.Get(db.Ctx,c.IP()).Int()
+		// valInt, _ := strconv.Atoi(val)
+		valInt,_:=r2.Get(db.Ctx,c.IP()).Int()
+		if valInt <= 0 {
+			limit,_:=r2.TTL(db.Ctx,c.IP()).Result()		//this will return the time left for the key to expire.in this case the key is the ip address of the user.
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+				"error": "Rate limit exceeded",
+				"retryAfter": limit/time.Nanosecond/time.Minute,
+			})
+		}
+	}
+
 	// ! check whether the input is an actual URl
 
 	if !govalidator.IsURL(reqbody.URL) {
@@ -53,15 +75,20 @@ func shortenUrl(c *fiber.Ctx) error {
 	}
 
 	//! enfore https/SSL
-	if reqbody.URL[:5] != "https" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "URL must be HTTPS",
-		})
-	}
-	
+	//* method 1. this we can do to validate
+	/*
+		if reqbody.URL[:5] != "https" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "URL must be HTTPS",
+			})
+		}
+	*/
+
+	//* method 2. this we can do to check and replace the http with https
+	reqbody.URL = helpers.EnforceHTTPS(reqbody.URL)
 
 
-
+	r2.Decr(db.Ctx, c.IP()) //decrement the count of the ip address by 1
 	return c.JSON(fiber.Map{
 		"message": "shortenUrl",
 	})
