@@ -3,7 +3,25 @@ import "./App.css";
 import Navbar from "./Components/Navbar";
 import LandingPage from "./Components/LandingPage";
 import React from "react";
+import axios from "axios"
 
+const getShortUrl=async(url:string)=>{
+  const data={
+    "url":url
+  }
+  console.log(url)
+  
+  try {
+    const resp=await axios.post("http://localhost:3000/api/v1",data)
+    console.log(resp)
+    navigator.clipboard.writeText(resp.data.CustomShort)
+  } catch (error) {
+
+    console.log("error",error)
+    
+  }
+
+}
 function App(): JSX.Element {
   const [value, setValue] = React.useState(""); // State for controlled input
 
@@ -34,6 +52,7 @@ function App(): JSX.Element {
             value={value}
             onChange={(e) => setValue(e.target.value)}
           />
+          <button className="border-2 border-purple-400 font-bold  rounded-lg p-2 hover:bg-gradient-to-tr from-amber-800 via-blue-800 to-black" onClick={() => {getShortUrl(value), console.log("hello hardik")}}>Get Link</button>
         </div>
         <div className="my-6">
           <LandingPage />

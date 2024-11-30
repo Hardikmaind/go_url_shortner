@@ -8,6 +8,7 @@ import (
 	"github.com/Hardikmaind/go_url_shortner/db"
 	"github.com/Hardikmaind/go_url_shortner/routes"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/joho/godotenv"
 )
@@ -30,12 +31,8 @@ func main() {
 	godotenv.Load("fileone", "filetwo")
 	It's important to note that it WILL NOT OVERRIDE an env variable that already exists - consider the .env file to set dev vars or sensible defaults.*/
 
-
-
-
-	db.InitRedisClient()			//! HERE WE INITIALIZE THE NEW REDIS INSTANCE
+	db.InitRedisClient() //! HERE WE INITIALIZE THE NEW REDIS INSTANCE
 	defer db.CreateClient.Close()
-
 
 	if err != nil {
 		fmt.Println("Error loading .env file")
@@ -48,6 +45,14 @@ func main() {
 	app.Use(logger.New())
 	setupRoutes(app)
 
+	// Enable CORS for all origins
+	// CORS middleware with configuration to allow your frontend URL
+	// Enable CORS for all origins
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*", // Allow all origins
+		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS", // Allow all methods
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization", // Allow headers
+	}))
 	//? I could also write below as log.Fatal(app.Listen(":3000"))
 	// run:=app.Listen(os.Getenv("app_port"))
 	// log.Fatal(run)
