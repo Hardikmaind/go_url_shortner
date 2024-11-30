@@ -1,22 +1,20 @@
 import React from "react";
+import { motion } from "framer-motion";
 
 export default function Navbar(): JSX.Element {
   return (
-    <>
-      <nav className="bg-white border-gray-200 bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-        <div className="max-w-screen-xl flex items-center justify-center mx-auto p-2">
-          <a
-            href="https://flowbite.com/"
-            className="flex flex-row items-center space-x-3 rtl:space-x-reverse"
-          >
-           
-            <span className="self-center font-mono text-2xl font-semibold whitespace-nowrap dark:text-white animate-pulse ">
-              WELCOME TO FREE URL SHORTNER!
-            
-            </span>
-          </a>
-        </div>
-      </nav>
-    </>
+    <nav className="  w-full bg-gradient-to-br from-gray-900 via-gray-800 to-black z-50">
+      <motion.div
+        className="self-center font-mono text-2xl font-semibold whitespace-nowrap text-white text-center py-3"
+        animate={{ x: ["100%", "-100%"] }} // Move from right to left
+        transition={{
+          duration: 20,
+          repeat: Infinity,
+          ease: "linear",
+        }}
+      >
+        WELCOME TO FREE URL SHORTENER!
+      </motion.div>
+    </nav>
   );
 }
