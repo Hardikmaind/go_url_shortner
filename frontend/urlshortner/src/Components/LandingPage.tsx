@@ -53,9 +53,9 @@ const posts = [
   
   export default function LandingPage():JSX.Element {
     return (
-      <div className="bg-gradient-to-tr  from-white-800 via-purple-300 to-green-400   sm:py-10 rounded-lg">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl lg:mx-0">
+      <div className="bg-gradient-to-tr  from-white-800 via-purple-300 to-green-400  mx-5 lg:mx-0 sm:py-10 rounded-lg">
+        <div className="mx-auto max-w-7xl  px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl  lg:mx-0">
             <h2 className="text-pretty  font-semibold tracking-tight text-gray-900 sm:text-3xl">About ShortKing</h2>
             <p className=" text-lg/8 text-purple-700 font-bold">Shorten URLs for Free, No Login, Unlimited Convenience!</p>
           </div>
@@ -63,7 +63,7 @@ const posts = [
             {posts.map((post) => (
               <article key={post.id} className="flex max-w-xl flex-col items-start justify-between">
                 <div className="flex items-center gap-x-4 text-xs">
-                  <time dateTime={post.datetime} className="text-gray-500">
+                  <time dateTime={post.datetime} className="text-white font-bold">
                     {post.date}
                   </time>
                   <a
@@ -74,7 +74,7 @@ const posts = [
                   </a>
                 </div>
                 <div className="group relative">
-                  <h3 className="mt-3 text-lg/6 font-semibold text-gray-900 group-hover:text-gray-600">
+                  <h3 className="mt-3  font-bold text-black text-xl group-hover:text-gray-600">
                     <a href={post.href}>
                       <span className="absolute inset-0" />
                       {post.title}
@@ -85,13 +85,13 @@ const posts = [
                 <div className="relative mt-8 flex items-center gap-x-4">
                   <img alt="" src={post.author.imageUrl} className="size-10 rounded-full bg-gray-50" />
                   <div className="text-sm/6">
-                    <p className="font-semibold text-gray-900">
+                    <p className="font-semibold text-black text-xl">
                       <a href={post.author.href}>
-                        <span className="absolute inset-0" />
+                        <span className="absolute inset-0 " />
                         {post.author.name}
                       </a>
                     </p>
-                    <p className="text-white">{post.author.role}</p>
+                    <p className="text-white underline  underline-offset-3">{post.author.role}</p>
                   </div>
                 </div>
               </article>

@@ -4,24 +4,36 @@ import Navbar from "./Components/Navbar";
 import LandingPage from "./Components/LandingPage";
 import React from "react";
 import axios from "axios"
+import { a } from "motion/react-client";
 
-const getShortUrl=async(url:string)=>{
-  const data={
-    "url":url
-  }
-  console.log(url)
-  
+const getShortUrl = async (url: string) => {
+  const data = {
+    url: url,
+  };
+  console.log(url);
+
   try {
-    const resp=await axios.post("http://localhost:3000/api/v1",data)
-    console.log(resp)
-    navigator.clipboard.writeText(resp.data.CustomShort)
-  } catch (error) {
+    const resp = await axios.post("http://localhost:3000/api/v1", data);
+    console.log(resp);
 
-    console.log("error",error)
-    
+    try {
+      navigator.clipboard.writeText(resp.data.customShort);
+      alert("Link Copied to Clipboard");
+    } catch (error) {
+      console.log("Error copying to clipboard", error);
+    }
+  } catch (error: any) {
+    // Check if the error response has a rate limit exceeded message
+    if (error.response && error.response.data && error.response.data.error) {
+      const retryAfter = error.response.data.retryAfter || "a few seconds";
+      alert(`Too many requests, please try again after ${retryAfter}`);
+    } else {
+      alert("An error occurred. Please try again.");
+    }
+    console.log("Error", error);
   }
+};
 
-}
 function App(): JSX.Element {
   const [value, setValue] = React.useState(""); // State for controlled input
 

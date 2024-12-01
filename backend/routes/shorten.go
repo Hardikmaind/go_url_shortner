@@ -49,54 +49,10 @@ func ShortenUrl(c *fiber.Ctx) error {
 
 	//! ALSO WE CAN USE THE SAME DB FOR COUNTER AND KEY VALUUE. ALSO WE CAN USE MULTIPLE COUNTER IN THE SAME REDIS DB
 
-	// _, err := r.Get(db.Ctx, c.IP()).Result()
-	// if err == redis.Nil {
-	// 	r.Set(db.Ctx, c.IP(), os.Getenv("api_quota"), 30*time.Minute).Err()
-	// } else {
-	// 	// val, _ := r2.Get(db.Ctx, c.IP()).Result()			//instead of this we can dirctly get the val in int format by val,_:=r2.Get(db.Ctx,c.IP()).Int()
-	// 	// valInt, _ := strconv.Atoi(val)
-	// 	valInt, _ := r.Get(db.Ctx, c.IP()).Int()
-	// 	if valInt <= 0 {
-	// 		limit, _ := r.TTL(db.Ctx, c.IP()).Result() //this will return the time left for the key to expire.in this case the key is the ip address of the user.
-	// 		return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
-	// 			"error":      "Rate limit exceeded",
-	// 			"retryAfter": limit / time.Nanosecond / time.Minute,
-	// 		})
-	// 	}
-	// }
-
-	//=============================================================================================
-	// _, err := r.Get(db.Ctx, c.IP()).Result()
-	// if err == redis.Nil {
-	// 	//! Set rate limit and expiration for new IP
-	// 	err := r.Set(db.Ctx, c.IP(), os.Getenv("api_quota"), time.Minute).Err()
-	// 	if err != nil {
-	// 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-	// 			"error": "Failed to set rate limit",
-	// 		})
-	// 	}
-	// } else {
-	// 	valInt, _ := r.Get(db.Ctx, c.IP()).Int()
-	// 	if valInt <= 0 {
-	// 		fmt.Println("hello world")
-	// 		limit, _ := r.TTL(db.Ctx, c.IP()).Result()
-	// 		if limit <= 0 {
-	// 			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
-	// 				"error":      "Rate limit exceeded",
-	// 				"retryAfter": -1,
-	// 			})
-	// 		}
-	// 		return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
-	// 			"error":      "Rate limit exceeded",
-	// 			"retryAfter": int(limit.Seconds() / 60), //convert the time to minutes
-	// 		})
-	// 	}
-	// }
-	//=============================================================================================
 	_, err := r.Get(db.Ctx, c.IP()).Result()
 	if err == redis.Nil {
 		//! Set rate limit and expiration for new IP
-		err := r.Set(db.Ctx, c.IP(), os.Getenv("api_quota"), time.Minute).Err() // Set key with 1-minute expiration
+		err := r.Set(db.Ctx, c.IP(), os.Getenv("api_quota"), 2*time.Minute).Err() // Set key with 1-minute expiration
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Failed to set rate limit",
@@ -114,10 +70,11 @@ func ShortenUrl(c *fiber.Ctx) error {
 				})
 			}
 
-			// If TTL is still valid, return retry time in minutes
+			// If TTL is still valid, return retry time in seconds
+			retryAfter := fmt.Sprintf("%d seconds", int(limit.Seconds()))
 			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
 				"error":      "Rate limit exceeded",
-				"retryAfter": int(limit.Seconds() / 60), // Convert to minutes
+				"retryAfter": retryAfter, 
 			})
 		}
 	}

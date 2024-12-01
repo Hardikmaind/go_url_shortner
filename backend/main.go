@@ -43,16 +43,18 @@ func main() {
 	// 	return c.SendString("Hello, World!")
 	// })
 	app.Use(logger.New())
-	setupRoutes(app)
-
 	// Enable CORS for all origins
 	// CORS middleware with configuration to allow your frontend URL
 	// Enable CORS for all origins
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "*", // Allow all origins
-		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS", // Allow all methods
-		AllowHeaders: "Origin, Content-Type, Accept, Authorization", // Allow headers
+		AllowOrigins: "*", // Allows all origins
+		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS", // Allows these HTTP methods
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization", // Allows these headers
+		// AllowCredentials: true, // Include credentials if needed
 	}))
+	setupRoutes(app)
+
+	
 	//? I could also write below as log.Fatal(app.Listen(":3000"))
 	// run:=app.Listen(os.Getenv("app_port"))
 	// log.Fatal(run)
