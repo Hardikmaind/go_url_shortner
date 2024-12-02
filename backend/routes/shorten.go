@@ -40,8 +40,6 @@ func ShortenUrl(c *fiber.Ctx) error {
 		})
 	}
 
-
-
 	//!TODO: IF reqbody.url is empty then return an alternative response
 	if reqbody.URL == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -145,10 +143,16 @@ func ShortenUrl(c *fiber.Ctx) error {
 		// resp.XRateLimitRest,_=r2.TTL(db.Ctx, c.IP()).Val() / time.Second
 
 		//? this is method 2 to do above
+
+		ttl, err := r.TTL(db.Ctx, reqbody.URL).Result() //? Fixed the expiry..now expiry is consistent, in cache hit or miss
+		if err != nil {
+			fmt.Println("error in getting the ttl of the key")
+		}
+
 		resp := &Response{
 			URL:            reqbody.URL,
 			CustomShort:    domain + "/" + id,
-			Expiry:         reqbody.ExpiryDate,
+			Expiry:         ttl / time.Minute,
 			XRateRemaining: int(remainingQuota),
 			XRateLimitRest: r.TTL(db.Ctx, c.IP()).Val() / time.Second,
 		}
@@ -170,7 +174,7 @@ func ShortenUrl(c *fiber.Ctx) error {
 				"error": "Failed to save URL in Redis",
 			})
 		}
-		
+
 		err = r.Set(db.Ctx, id, reqbody.URL, reqbody.ExpiryDate).Err()
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
