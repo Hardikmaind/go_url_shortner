@@ -40,6 +40,15 @@ func ShortenUrl(c *fiber.Ctx) error {
 		})
 	}
 
+
+
+	//!TODO: IF reqbody.url is empty then return an alternative response
+	if reqbody.URL == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "URL cannot be empty",
+		})
+	}
+
 	//!TODO: Implement Rate Limiting here
 
 	//r2 := db.CreateClient(1) //this is the client for the rate limiting. we are creating a new client for the rate limiting. we can also use the same client which we used for the url shortening. but it is a good practice to use a different client for the rate limiting.
@@ -74,7 +83,7 @@ func ShortenUrl(c *fiber.Ctx) error {
 			retryAfter := fmt.Sprintf("%d seconds", int(limit.Seconds()))
 			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
 				"error":      "Rate limit exceeded",
-				"retryAfter": retryAfter, 
+				"retryAfter": retryAfter,
 			})
 		}
 	}
@@ -100,64 +109,105 @@ func ShortenUrl(c *fiber.Ctx) error {
 		if reqbody.URL[:5] != "https" {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error": "URL must be HTTPS",
-			})
-		}
+				})
+				}
 	*/
 
 	//* method 2. this we can do to check and replace the http with https
 	reqbody.URL = helpers.EnforceHTTPS(reqbody.URL)
 
-	id := reqbody.CustomShort
-	if id == "" {
-		id = helpers.GenerateRandomString(7)
-	}
-	fmt.Println("id:", id)
+	//!TODO: check if the custom short URL already exists.which means check if we have already created the custom short URL in the redis database.
+
 	//! WE HAVE ALREADY CREATED THE CLIENT FOR IT SEE ABOVE.
 	//r := db.CreateClient			//? this is the  client to same redis database which was initialised in main.go file. we are using the same client for the rate limiting. we can also use a different client for the rate limiting. but it is a good practice to use the same client for the rate limiting and the url shortening. and why create the redis client for each request to resolve function.
 
-	if exists, _ := r.Exists(db.Ctx, id).Result(); exists > 0 {
-		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-			"error": "Custom short URL already exists",
-		})
+	exists, _ := r.Exists(db.Ctx, reqbody.URL).Result()
+	if exists > 0 {
+		id, _ := r.Get(db.Ctx, reqbody.URL).Result()
+
+		remainingQuota, _ := r.Decr(db.Ctx, c.IP()).Result() //decrement the count of the ip address by 1
+		if remainingQuota < 0 {
+			ttl, _ := r.TTL(db.Ctx, c.IP()).Result()
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+				"error":      "Rate limit exceeded",
+				"retryAfter": ttl / time.Second,
+			})
+		}
+		domain := os.Getenv("domain")
+
+		//!TODO: return the response
+		//? this is method 1
+		// resp:=new(Response)
+		// resp.URL=reqbody.URL
+		// resp.CustomShort=domain + "/" + id,
+		// resp.Expiry=reqbody.ExpiryDate
+		// resp.XRateRemaining,_=int(remainingQuota),
+		// resp.XRateLimitRest,_=r2.TTL(db.Ctx, c.IP()).Val() / time.Second
+
+		//? this is method 2 to do above
+		resp := &Response{
+			URL:            reqbody.URL,
+			CustomShort:    domain + "/" + id,
+			Expiry:         reqbody.ExpiryDate,
+			XRateRemaining: int(remainingQuota),
+			XRateLimitRest: r.TTL(db.Ctx, c.IP()).Val() / time.Second,
+		}
+
+		return c.Status(fiber.StatusCreated).JSON(resp)
+	} else {
+		id := helpers.GenerateRandomString(7) //*declare the id string for generating the short url HASH
+
+		fmt.Println("id:", id)
+
+		//!TODO: save the URL in Redis
+		if reqbody.ExpiryDate == 0 {
+			reqbody.ExpiryDate = 24 * time.Hour //if the user does not provide the expiry date then we will set the expiry date to 24 hours.
+		}
+
+		//! THIS BELOW I HAVE DONE THE DUAL MAPPING.URL -> ID AND ID -> URL
+		if err := r.Set(db.Ctx, reqbody.URL, id, reqbody.ExpiryDate).Err(); err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to save URL in Redis",
+			})
+		}
+		
+		err = r.Set(db.Ctx, id, reqbody.URL, reqbody.ExpiryDate).Err()
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to save reverse mapping in Redis",
+			})
+		}
+
+		remainingQuota, _ := r.Decr(db.Ctx, c.IP()).Result() //decrement the count of the ip address by 1
+		if remainingQuota < 0 {
+			ttl, _ := r.TTL(db.Ctx, c.IP()).Result()
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+				"error":      "Rate limit exceeded",
+				"retryAfter": ttl / time.Second,
+			})
+		}
+		domain := os.Getenv("domain")
+
+		//!TODO: return the response
+		//? this is method 1
+		// resp:=new(Response)
+		// resp.URL=reqbody.URL
+		// resp.CustomShort=domain + "/" + id,
+		// resp.Expiry=reqbody.ExpiryDate
+		// resp.XRateRemaining,_=int(remainingQuota),
+		// resp.XRateLimitRest,_=r2.TTL(db.Ctx, c.IP()).Val() / time.Second
+
+		//? this is method 2 to do above
+		resp := &Response{
+			URL:            reqbody.URL,
+			CustomShort:    domain + "/" + id,
+			Expiry:         reqbody.ExpiryDate,
+			XRateRemaining: int(remainingQuota),
+			XRateLimitRest: r.TTL(db.Ctx, c.IP()).Val() / time.Second,
+		}
+
+		return c.Status(fiber.StatusCreated).JSON(resp)
+
 	}
 
-	if reqbody.ExpiryDate == 0 {
-		reqbody.ExpiryDate = 24 * time.Hour //if the user does not provide the expiry date then we will set the expiry date to 24 hours.
-	}
-
-	if err := r.Set(db.Ctx, id, reqbody.URL, reqbody.ExpiryDate).Err(); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to save URL in Redis",
-		})
-	}
-
-	remainingQuota, _ := r.Decr(db.Ctx, c.IP()).Result() //decrement the count of the ip address by 1
-	if remainingQuota < 0 {
-		ttl, _ := r.TTL(db.Ctx, c.IP()).Result()
-		return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
-			"error":      "Rate limit exceeded",
-			"retryAfter": ttl / time.Second,
-		})
-	}
-	domain := os.Getenv("domain")
-
-	//!TODO: return the response
-	//? this is method 1
-	// resp:=new(Response)
-	// resp.URL=reqbody.URL
-	// resp.CustomShort=domain + "/" + id,
-	// resp.Expiry=reqbody.ExpiryDate
-	// resp.XRateRemaining,_=int(remainingQuota),
-	// resp.XRateLimitRest,_=r2.TTL(db.Ctx, c.IP()).Val() / time.Second
-
-	//? this is method 2 to do above
-	resp := &Response{
-		URL:            reqbody.URL,
-		CustomShort:    domain + "/" + id,
-		Expiry:         reqbody.ExpiryDate,
-		XRateRemaining: int(remainingQuota),
-		XRateLimitRest: r.TTL(db.Ctx, c.IP()).Val() / time.Second,
-	}
-
-	return c.Status(fiber.StatusCreated).JSON(resp)
 }

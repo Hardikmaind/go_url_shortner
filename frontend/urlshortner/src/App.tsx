@@ -24,11 +24,14 @@ const getShortUrl = async (url: string) => {
     }
   } catch (error: any) {
     // Check if the error response has a rate limit exceeded message
-    if (error.response && error.response.data && error.response.data.error) {
+    if (error.response && error.response.data && error.response.data.error==="Rate limit exceeded") {
       const retryAfter = error.response.data.retryAfter || "a few seconds";
       alert(`Too many requests, please try again after ${retryAfter}`);
-    } else {
+    } else if(error.response && error.response.data && error.response.data.error==="URL cannot be empty") {
+      alert("URL cannot be empty");
+    }else{
       alert("An error occurred. Please try again.");
+
     }
     console.log("Error", error);
   }

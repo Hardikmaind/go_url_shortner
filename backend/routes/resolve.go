@@ -7,7 +7,7 @@ import (
 )
 
 func ResolveUrl(c *fiber.Ctx) error {
-	url := c.Params("url")
+	shortKey  := c.Params("url")
 
 	//r := db.CreateClient(0)				//now here everytime a resolveUrl function is called, a new redis client is created and then closed. This is not a good practice. So we will create a single redis client(shared rdb) and use it everywhere.
 
@@ -15,7 +15,7 @@ func ResolveUrl(c *fiber.Ctx) error {
 	//defer r.Close()		//SINCE THIS IS THE SAME CLIENT IN THE MAIN.GO..WE WILL TERMINATE THIS CLIENT WHEN THE APPLICATION TERMINATES. SO WE WILL WRITE THIS LINE IN MAIN.GO INSTED OF HERE.
 
 	//? Check in the database. if url is not in the database, return 404
-	value, err := r.Get(db.Ctx, url).Result()
+	value, err := r.Get(db.Ctx, shortKey ).Result()
     if err == redis.Nil {
         return c.Status(fiber.StatusNotFound).JSON(fiber.Map{		//! we can direcly write the status code like this=>"return c.Status(404).JSON(fiber.Map{" or we can use the fiber package constants like this=>"return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"
             "error": "URL not found",
@@ -26,7 +26,8 @@ func ResolveUrl(c *fiber.Ctx) error {
         })
     }
 
-	//* this rInr tracks the usage of the shorten url
+	//* this rInr tracks the usage of the shorten url. 
+	//! : Increment the counter only for the shortened key. This can help track usage stats for analytics purposes.
 
 	//rInr:=db.CreateClient(1)			//now here everytime a resolveUrl function is called, a new redis client is created and then closed. This is not a good practice. So we will create a single redis client(shared rdb) and use it everywhere.
 	/*
