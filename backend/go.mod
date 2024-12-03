@@ -7,6 +7,7 @@ require (
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/gofiber/fiber/v2 v2.52.5
 	github.com/joho/godotenv v1.5.1
+	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	golang.org/x/exp v0.0.0-20241108190413-2d47ceb2692f
 )
 

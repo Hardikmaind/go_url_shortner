@@ -11,11 +11,13 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/joho/godotenv"
+
 )
 
 func setupRoutes(app *fiber.App) {
 	app.Get("/:url", routes.ResolveUrl)
 	app.Post("/:api/v1", routes.ShortenUrl)
+	app.Post("/:api/v1/qr", routes.UrlToQrcode)
 }
 func main() {
 	err := godotenv.Load()

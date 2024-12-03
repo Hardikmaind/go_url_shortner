@@ -2,9 +2,9 @@ import reactLogo from "./assets/react.svg";
 import "./App.css";
 import Navbar from "./Components/Navbar";
 import LandingPage from "./Components/LandingPage";
-import React from "react";
-import axios from "axios"
-import { a } from "motion/react-client";
+import React,{ useState } from "react";
+import axios from "axios";
+
 
 const getShortUrl = async (url: string) => {
   const data = {
@@ -24,24 +24,48 @@ const getShortUrl = async (url: string) => {
     }
   } catch (error: any) {
     // Check if the error response has a rate limit exceeded message
-    if (error.response && error.response.data && error.response.data.error==="Rate limit exceeded") {
+    if (
+      error.response &&
+      error.response.data &&
+      error.response.data.error === "Rate limit exceeded"
+    ) {
       const retryAfter = error.response.data.retryAfter || "a few seconds";
       alert(`Too many requests, please try again after ${retryAfter}`);
-    } else if(error.response && error.response.data && error.response.data.error==="URL cannot be empty") {
+    } else if (
+      error.response &&
+      error.response.data &&
+      error.response.data.error === "URL cannot be empty"
+    ) {
       alert("URL cannot be empty");
-    }else{
+    } else {
       alert("An error occurred. Please try again.");
-
     }
     console.log("Error", error);
   }
 };
 
+const getQrCode = async (url: string,setImageSrc:React.Dispatch<React.SetStateAction<string| null>>) => {
+  const data = {
+    url: url,
+  };
+  try {
+    const resp = await axios.post("http://localhost:3000/api/v1/qr", data);
+    const qrCode = resp.data.qrCode;
+    const blob = qrCode.blob();                //! Convert the response to a Blob
+    
+    const url = URL.createObjectURL(blob);     //! Create an object URL from the Blob
+    setImageSrc(url); // Set the URL as the src of the image
+  } catch (error) {
+    console.log("Error", error);
+  }
+};
+
 function App(): JSX.Element {
-  const [value, setValue] = React.useState(""); // State for controlled input
+  const [value, setValue] = useState<string>(""); // State for controlled input
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
 
   return (
-  // give the min-h-screen to the parent div so that the height of the parent div is atleast the height of the screen
+    // give the min-h-screen to the parent div so that the height of the parent div is atleast the height of the screen
     <div className="min-h-screen">
       <div className=" z-50 fixed w-full">
         <Navbar />
@@ -65,9 +89,26 @@ function App(): JSX.Element {
             placeholder="Enter your URL"
             className="border border-gray-300 p-2 rounded-lg w-3/6 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={value}
-            onChange={(e) => setValue(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue(e.target.value)}
           />
-          <button className="border-2 border-purple-400 font-bold  rounded-lg p-2 hover:bg-gradient-to-tr from-amber-800 via-blue-800 to-black" onClick={() => {getShortUrl(value), console.log("hello hardik")}}>Get Link</button>
+        </div>
+        <div className="flex space-x-10 flex-row">
+          <button
+            className="border-2 px-5 border-purple-400 font-bold  rounded-lg p-2 hover:bg-gradient-to-tr from-amber-800 via-blue-800 to-black"
+            onClick={() => {
+              getShortUrl(value), console.log("hello hardik");
+            }}
+          >
+            Get Link
+          </button>
+          <button
+            className="border-2 border-purple-400 font-bold  rounded-lg p-2 hover:bg-gradient-to-tr from-amber-800 via-blue-800 to-black"
+            onClick={() => {
+              getQrCode(value,setImageSrc), console.log("hello hardik");
+            }}
+          >
+            Get QR Code
+          </button>
         </div>
         <div className="my-6">
           <LandingPage />
@@ -78,7 +119,6 @@ function App(): JSX.Element {
 }
 
 export default App;
-
 
 /*The reason I used `min-h-screen` in both places is to ensure that the background and layout cover the entire height of the viewport, even with a fixed navbar. Let me break it down for clarity:
 

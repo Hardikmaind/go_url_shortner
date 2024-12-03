@@ -7,11 +7,15 @@ import (
 
 	"github.com/Hardikmaind/go_url_shortner/db"
 	"github.com/Hardikmaind/go_url_shortner/helpers"
+	"github.com/Hardikmaind/go_url_shortner/types"
 	"github.com/asaskevich/govalidator"
 	"github.com/go-redis/redis/v8"
 	"github.com/gofiber/fiber/v2"
 )
 
+
+/*
+? I have declared this in the types package
 type Request struct {
 	URL         string        `json:"url"`
 	CustomShort string        `json:"customShort"`
@@ -24,10 +28,11 @@ type Response struct {
 	XRateRemaining int           `json:"xRateRemaining"`
 	XRateLimitRest time.Duration `json:"xRateLimitRest"`
 }
+*/
 
 func ShortenUrl(c *fiber.Ctx) error {
 	//* we can also use "var reqBody RequestBody"..but this does not allocate memory to the struct. and does not give pointer to the struct. so we use new keyword to allocate memory to the struct.
-	reqbody := new(Request) //this new keyword is used to create a new instance of the Request struct.This was introduced in Go 1.4. It allocates zeroed storage for a new item and returns a pointer to it.
+	reqbody := new(types.Request) //this new keyword is used to create a new instance of the Request struct.This was introduced in Go 1.4. It allocates zeroed storage for a new item and returns a pointer to it.
 
 	//now we are binding the request body to the Request struct.
 	//? c.BodyParser binds the request body to a struct. It supports JSON, form, query, and multipart requests.
@@ -149,7 +154,7 @@ func ShortenUrl(c *fiber.Ctx) error {
 			fmt.Println("error in getting the ttl of the key")
 		}
 
-		resp := &Response{
+		resp := &types.Response{
 			URL:            reqbody.URL,
 			CustomShort:    domain + "/" + id,
 			Expiry:         ttl / time.Minute,
@@ -202,7 +207,7 @@ func ShortenUrl(c *fiber.Ctx) error {
 		// resp.XRateLimitRest,_=r2.TTL(db.Ctx, c.IP()).Val() / time.Second
 
 		//? this is method 2 to do above
-		resp := &Response{
+		resp := &types.Response{
 			URL:            reqbody.URL,
 			CustomShort:    domain + "/" + id,
 			Expiry:         reqbody.ExpiryDate,

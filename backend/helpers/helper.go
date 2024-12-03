@@ -57,3 +57,8 @@ func GenerateRandomString(length int) string {
 
 	return string(result)
 }
+
+
+
+
+//this is the function which will be used to check the rate limit for the user.
