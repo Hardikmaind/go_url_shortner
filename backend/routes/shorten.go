@@ -62,8 +62,9 @@ func ShortenUrl(c *fiber.Ctx) error {
 	//! ALSO WE CAN USE THE SAME DB FOR COUNTER AND KEY VALUUE. ALSO WE CAN USE MULTIPLE COUNTER IN THE SAME REDIS DB
 
 	_, err := r.Get(db.Ctx, c.IP()).Result()
-	if err == redis.Nil {
-		//! Set rate limit and expiration for new IP
+	if err == redis.Nil {			//In Redis, when you attempt to GET a key that doesn't exist, it returns the error "redis.Nil", which is a special error used to indicate that the key was not found.
+		//! Set rate limit and expiration for new IP. 
+		//HERE THE c.IP() is the key and api_quota is the value(defined in .env which is 10. we decrement this value by 1 (--1) each time the user hits the endpoint)
 		err := r.Set(db.Ctx, c.IP(), os.Getenv("api_quota"), 2*time.Minute).Err() // Set key with 1-minute expiration
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
