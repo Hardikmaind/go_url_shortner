@@ -160,7 +160,7 @@ func ShortenUrl(c *fiber.Ctx) error {
 			CustomShort:    domain + "/" + id,
 			Expiry:         ttl / time.Minute,
 			XRateRemaining: int(remainingQuota),
-			XRateLimitRest: r.TTL(db.Ctx, c.IP()).Val() / time.Second,
+			XRateLimitReset: r.TTL(db.Ctx, c.IP()).Val() / time.Second,
 		}
 
 		return c.Status(fiber.StatusCreated).JSON(resp)
@@ -213,7 +213,7 @@ func ShortenUrl(c *fiber.Ctx) error {
 			CustomShort:    domain + "/" + id,
 			Expiry:         reqbody.ExpiryDate,
 			XRateRemaining: int(remainingQuota),
-			XRateLimitRest: r.TTL(db.Ctx, c.IP()).Val() / time.Second,
+			XRateLimitReset: r.TTL(db.Ctx, c.IP()).Val() / time.Second,
 		}
 
 		return c.Status(fiber.StatusCreated).JSON(resp)

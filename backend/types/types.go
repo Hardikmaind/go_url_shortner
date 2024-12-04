@@ -14,7 +14,7 @@ type Response struct {
 	CustomShort    string        `json:"customShort"`
 	Expiry         time.Duration `json:"expiry"`
 	XRateRemaining int           `json:"xRateRemaining"`
-	XRateLimitRest time.Duration `json:"xRateLimitRest"`
+	XRateLimitReset time.Duration `json:"xRateLimitRest"`
 }
 
 type QrResponse struct {
@@ -22,5 +22,5 @@ type QrResponse struct {
 	QrCode         []byte        `json:"qrCode"`  // Change from string to []byte for raw binary data
 	Expiry         time.Duration `json:"expiry"`
 	XRateRemaining int           `json:"xRateRemaining"`
-	XRateLimitRest time.Duration `json:"xRateLimitRest"`
+	XRateLimitReset time.Duration `json:"xRateLimitRest"`
 }

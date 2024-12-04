@@ -2,10 +2,9 @@ import reactLogo from "./assets/react.svg";
 import "./App.css";
 import Navbar from "./Components/Navbar";
 import LandingPage from "./Components/LandingPage";
-import React,{ useState ,useEffect} from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { use } from "motion/react-client";
-
 
 const getShortUrl = async (url: string) => {
   const data = {
@@ -45,39 +44,70 @@ const getShortUrl = async (url: string) => {
   }
 };
 
-const getQrCode = async (url: string,setImageSrc:React.Dispatch<React.SetStateAction<string| null>>,setShowQrCode:React.Dispatch<React.SetStateAction<boolean>>,showQrCode:boolean) => {
+const getQrCode = async (
+  url: string,
+  setImageSrc: React.Dispatch<React.SetStateAction<string | undefined>>,
+  
+) => {
   const data = {
     url: url,
   };
   try {
-    const resp = await axios.post("http://localhost:3000/api/v1/qr", data);
-    const qrCode = resp.data.qrCode;    //qeCode is in the []byte format so below we are converting it into blob
-    const blob = qrCode.blob();                //! Convert the response to a Blob
-    
-    const url = URL.createObjectURL(blob);     //! Create an object URL from the Blob
-    setImageSrc(url); // Set the URL as the src of the image
-    setShowQrCode(!showQrCode); // Show the QR code
-    
-  } catch (error) {
+    const resp = await axios.post("http://localhost:3000/api/v1/qr", data, 
+      // ? REMOVED THIS BELOW SINCE THE SERVER IS SENDING THE BASE64 IMAGE==================================== 
+    //   {
+    //   responseType: "arraybuffer", // Expect binary data (ArrayBuffer) for qrCode
+    // }
+    //? =================================== 
+  );
+    const qrCode = resp.data.qrCode;
+    // ? COMMENTED BELOW SINCE NO NEED TO CONVERT .SINCE WE ARE GETTING THE IMAGE IN BASE64 FORMAT AND NOT IN []Byte ARRAY(ARRAYBUFFER) FORMAT
+    //qeCode is in the []byte format so below we are converting it into blob
+    // const blob = new Blob([qrCode], { type: "image/png" }); //! Convert ArrayBuffer to Blob
+    // const url = URL.createObjectURL(blob); //! Create an object URL from the Blob
+    // ? =================================================================================================
+
+
+    const imageUrl = `data:image/png;base64,${qrCode}`; // Create Base64 image URL
+    setImageSrc(imageUrl); // Set the URL as the src of the image
+
+  } catch (error: any) {
+    // Check if the error response has a rate limit exceeded message
+    if (
+      error.response &&
+      error.response.data &&
+      error.response.data.error === "Rate limit exceeded"
+    ) {
+      const retryAfter = error.response.data.retryAfter || "a few seconds";
+      alert(`Too many requests, please try again after ${retryAfter}`);
+    } else if (
+      error.response &&
+      error.response.data &&
+      error.response.data.error === "URL cannot be empty"
+    ) {
+      alert("URL cannot be empty");
+    } else {
+      alert("An error occurred. Please try again.");
+    }
     console.log("Error", error);
   }
 };
 
 function App(): JSX.Element {
   const [value, setValue] = useState<string>(""); // State for controlled input
-  const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [showQrCode, setShowQrCode] = useState<boolean>(false);
+  const [imageSrc, setImageSrc] = useState<string | undefined>(undefined);
+  
 
-//   useEffect(() => {
-//     if (showQrCode) {
-//       // Clear the QR code image after 5 seconds
-//       const timeout = setTimeout(() => {
-//         setImageSrc(null);
-//         setShowQrCode(false);
-//       }, 5000);
-//       return () => clearTimeout(timeout);
-//     }
-// }, [showQrCode]);
+  //   useEffect(() => {
+  //     if (showQrCode) {
+  //       // Clear the QR code image after 5 seconds
+  //       const timeout = setTimeout(() => {
+  //         setImageSrc(null);
+  //         setShowQrCode(false);
+  //       }, 5000);
+  //       return () => clearTimeout(timeout);
+  //     }
+  // }, [showQrCode]);
 
   return (
     // give the min-h-screen to the parent div so that the height of the parent div is atleast the height of the screen
@@ -104,13 +134,15 @@ function App(): JSX.Element {
             placeholder="Enter your URL"
             className="border border-gray-300 p-2 rounded-lg w-3/6 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={value}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setValue(e.target.value)
+            }
           />
         </div>
         <div className="flex space-x-10 flex-row">
           <button
             className="border-2 px-5 border-purple-400 font-bold  rounded-lg p-2 hover:bg-gradient-to-tr from-amber-800 via-blue-800 to-black"
-            // ! THIS IS DIFFERENCE IN THE BELOW TWO "onClick" FUNCTION
+            // ! THERE IS DIFFERENCE IN THE BELOW TWO "onClick" FUNCTION
             // onClick={() => {
             //   getShortUrl(value), console.log("hello hardik");
             // }}
@@ -124,13 +156,24 @@ function App(): JSX.Element {
           <button
             className="border-2 border-purple-400 font-bold  rounded-lg p-2 hover:bg-gradient-to-tr from-amber-800 via-blue-800 to-black"
             onClick={() => {
-              getQrCode(value,setImageSrc,setShowQrCode,showQrCode);
+              getQrCode(value, setImageSrc );
               console.log("hello hardik");
             }}
           >
             Get QR Code
           </button>
         </div>
+        {  imageSrc && (
+          <div className="mt-6">
+             
+
+            <img
+              src={imageSrc}
+              alt="Generated QR Code"
+              style={{ width: "200px", height: "200px" }}
+            />
+          </div>
+        )}
         <div className="my-6">
           <LandingPage />
         </div>

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	qrcode "github.com/skip2/go-qrcode"
 	"golang.org/x/exp/rand"
 )
 
@@ -36,7 +37,6 @@ func IsRequestURLAllowed(url string) bool {
 
 }
 
-
 //! Atual logic behind url shortening
 
 // Base62 character set
@@ -58,7 +58,13 @@ func GenerateRandomString(length int) string {
 	return string(result)
 }
 
+//Below is the function to create the QR code
+func CreateQRCode(url string) ([]byte, error) {
+	// Generate the QR code
+	qr, err := qrcode.Encode(url, qrcode.Medium, 256)
+	if err != nil {
+		return nil, err
+	}
 
-
-
-//this is the function which will be used to check the rate limit for the user.
+	return qr, nil
+}

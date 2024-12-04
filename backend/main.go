@@ -24,10 +24,9 @@ func setupRoutes(app *fiber.App) {
 func InitRedisClients(){
 	
 	db.InitRedisClient() //! HERE WE INITIALIZE THE NEW REDIS INSTANCE
-	defer db.CreateClient.Close()
+	
 
 	db.InitRedisClient2()		//! HERE WE INITIALIZE THE NEW REDIS INSTANCE FOR THE QR CODE STORING. WE CAN ALSO USE THE SAME BUT TO KEEP THE SEPARATION OF CONCERNS WE ARE USING A DIFFERENT DB FOR QR CODE STORING
-	defer db.CreateClient2.Close()
 
 }
 func main() {
@@ -45,6 +44,9 @@ func main() {
 	It's important to note that it WILL NOT OVERRIDE an env variable that already exists - consider the .env file to set dev vars or sensible defaults.*/
 
 	InitRedisClients()		//? this function here will intialize the redis client
+	//DONT WRITE THE DEFER STATEMENT IN THE "InitRedisClients" FUNCTION AS IT WILL CLOSE THE CLIENTS IMMEDIATELY AFTER THE FUNCTION EXECUTION. SO WE WILL WRITE THE DEFER STATEMENT HERE IN MAIN FUNCTION
+	defer db.CreateClient.Close()
+	defer db.CreateClient2.Close()
 
 	if err != nil {
 		fmt.Println("Error loading .env file")
