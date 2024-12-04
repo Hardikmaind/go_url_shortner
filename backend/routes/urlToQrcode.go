@@ -11,7 +11,7 @@ import (
 
 // ? below is the handler which will be called when the user hits the /api/v1 endpoint
 func UrlToQrcode(c *fiber.Ctx) error {
-	var reqBody types.Request
+	var reqBody types.QrResponse
 	if err := c.BodyParser(&reqBody); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "cannot parse JSON",
@@ -24,10 +24,11 @@ func UrlToQrcode(c *fiber.Ctx) error {
 			"error": "cannot generate QR code",
 		})
 	}
+	reqBody.QrCode=png
 
-	//!WE CAN ALSO USE THE SAME SAME DB FOR THE QR CODE STORING AND URL SHORTENING. BUT FOR SEPARACTION OF CONCERNS WE WILL USE A DIFFERENT DB FOR QR CODE STORING. 
-	r2 := db.GetClientForDB(1)
-	defer r2.Close()
+	//!WE CAN ALSO USE THE SAME SAME DB FOR THE QR CODE STORING AND URL SHORTENING. BUT FOR SEPARACTION OF CONCERNS WE WILL USE A DIFFERENT DB FOR QR CODE STORING.also diff client. ALSO WE WILL USE A DIFFERENT go context package for each client
+	r2 := db.CreateClient2
+
 	if exists,_ := r2.Exists(db.Ctx, reqBody.URL).Result();exists>0{
 		return c.Status(fiber.StatusOK).JSON(reqBody)
 	}else{

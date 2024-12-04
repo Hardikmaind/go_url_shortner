@@ -12,6 +12,8 @@ import (
 var (
 	Ctx          = context.Background()
 	CreateClient *redis.Client
+	CreateClient2 *redis.Client
+
 )
 
 
@@ -20,6 +22,18 @@ func InitRedisClient() {
 	CreateClient = redis.NewClient(&redis.Options{
 		Addr:     os.Getenv("db_addr"),
 		DB:       0,
+		Password: os.Getenv("dp_pass"),
+	})
+
+}
+
+
+// first letter of function name should be capital to make it public and to export it to other packages
+// ! THIS FUNCTION CREATES A DIFFERENT REDIS CLIENT to DATABASE "1" FOR QR CODE STORING
+func InitRedisClient2() {
+	CreateClient2 = redis.NewClient(&redis.Options{
+		Addr:     os.Getenv("db_addr"),
+		DB:       1,
 		Password: os.Getenv("dp_pass"),
 	})
 
@@ -36,3 +50,4 @@ func GetClientForDB(dbNo int) *redis.Client {
 		DB:       dbNo,
 	})
 }
+

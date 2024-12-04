@@ -19,6 +19,17 @@ func setupRoutes(app *fiber.App) {
 	app.Post("/:api/v1", routes.ShortenUrl)
 	app.Post("/:api/v1/qr", routes.UrlToQrcode)
 }
+
+
+func InitRedisClients(){
+	
+	db.InitRedisClient() //! HERE WE INITIALIZE THE NEW REDIS INSTANCE
+	defer db.CreateClient.Close()
+
+	db.InitRedisClient2()		//! HERE WE INITIALIZE THE NEW REDIS INSTANCE FOR THE QR CODE STORING. WE CAN ALSO USE THE SAME BUT TO KEEP THE SEPARATION OF CONCERNS WE ARE USING A DIFFERENT DB FOR QR CODE STORING
+	defer db.CreateClient2.Close()
+
+}
 func main() {
 	err := godotenv.Load()
 	/*func godotenv.Load(filenames ...string) (err error)
@@ -33,8 +44,7 @@ func main() {
 	godotenv.Load("fileone", "filetwo")
 	It's important to note that it WILL NOT OVERRIDE an env variable that already exists - consider the .env file to set dev vars or sensible defaults.*/
 
-	db.InitRedisClient() //! HERE WE INITIALIZE THE NEW REDIS INSTANCE
-	defer db.CreateClient.Close()
+	InitRedisClients()		//? this function here will intialize the redis client
 
 	if err != nil {
 		fmt.Println("Error loading .env file")
