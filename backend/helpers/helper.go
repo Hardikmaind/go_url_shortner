@@ -1,10 +1,14 @@
 package helpers
 
 import (
+	"context"
+	"fmt"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/go-redis/redis/v8"
+	"github.com/gofiber/fiber/v2"
 	qrcode "github.com/skip2/go-qrcode"
 	"golang.org/x/exp/rand"
 )
@@ -58,7 +62,7 @@ func GenerateRandomString(length int) string {
 	return string(result)
 }
 
-//Below is the function to create the QR code
+// Below is the function to create the QR code
 func CreateQRCode(url string) ([]byte, error) {
 	// Generate the QR code
 	qr, err := qrcode.Encode(url, qrcode.Medium, 256)
@@ -67,4 +71,39 @@ func CreateQRCode(url string) ([]byte, error) {
 	}
 
 	return qr, nil
+}
+
+// ? I CAN USE THIS FUNCTION TO RATE LIMIT THE API REQUESTS DIRECLTY IN THE SHORTEN.GO FILE. INSTEAD OF ALL THE CLUTTER CODE 
+func RateLimit(ctx *fiber.Ctx, r *redis.Client, c context.Context, IP string) error {
+	_, err := r.Get(c, IP).Result()
+	if err == redis.Nil { //In Redis, when you attempt to GET a key that doesn't exist, it returns the error "redis.Nil", which is a special error used to indicate that the key was not found.
+		//! Set rate limit and expiration for new IP.
+		//HERE THE IP is the key and api_quota is the value(defined in .env which is 10. we decrement this value by 1 (--1) each time the user hits the endpoint)
+		err := r.Set(c, IP, os.Getenv("api_quota"), 2*time.Minute).Err() // Set key with 1-minute expiration
+		if err != nil {
+			return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to set rate limit",
+			})
+		}
+	} else {
+		valInt, _ := r.Get(c, IP).Int()
+		if valInt <= 0 {
+			limit, _ := r.TTL(c, IP).Result() // Check TTL for the current IP
+
+			if limit <= 0 { // If TTL has expired (or not set)
+				return ctx.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+					"error":      "Rate limit exceeded",
+					"retryAfter": 1, // Retry after 1 minute
+				})
+			}
+
+			// If TTL is still valid, return retry time in seconds
+			retryAfter := fmt.Sprintf("%d seconds", int(limit.Seconds()))
+			return ctx.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+				"error":      "Rate limit exceeded",
+				"retryAfter": retryAfter,
+			})
+		}
+	}
+	return nil // Return nil if no rate limit is exceeded
 }
