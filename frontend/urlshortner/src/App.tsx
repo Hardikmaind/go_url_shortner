@@ -1,10 +1,12 @@
-import reactLogo from "./assets/react.svg";
 import "./App.css";
-import Navbar from "./Components/Navbar";
-import LandingPage from "./Components/LandingPage";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+// import LandingPage from "./Components/LandingPage";
+const LandingPage=React.lazy(()=>import("./Components/LandingPage"));
+// import Navbar from "./Components/Navbar";
+const Navbar=React.lazy(()=>import("./Components/Navbar"));
 import axios from "axios";
-import { use } from "motion/react-client";
+
+
 
 const getShortUrl = async (url: string) => {
   const data = {
@@ -93,7 +95,7 @@ const getQrCode = async (
   }
 };
 
-function App(): JSX.Element {
+function App(): React.JSX.Element {
   const [value, setValue] = useState<string>(""); // State for controlled input
   const [imageSrc, setImageSrc] = useState<string | undefined>(undefined);
   

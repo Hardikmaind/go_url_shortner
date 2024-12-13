@@ -1,0 +1,34 @@
+version: "3"
+services:
+  api:
+    build: backend  # Assuming you have a Dockerfile in the 'backend' directory
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+  db:
+    build: db  # Assuming you have a Dockerfile in the 'db' directory
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./data:/data
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: frontend/urlshortner/  # Ensure this path is correct relative to the 'docker-compose.yml' location
+      dockerfile: Dockerfile  # If your Dockerfile is named differently, use that name here (e.g., Dockerfile.prod)
+    ports:
+      - "8080:8080"
+    depends_on:
+      - api
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
