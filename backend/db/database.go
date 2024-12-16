@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"os"
+	"fmt"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -25,6 +26,11 @@ func InitRedisClient() {
 		DB:       0,
 		Password: os.Getenv("dp_pass"),
 	})
+	// Check if the Redis client can connect
+	_, err := CreateClient.Ping(Ctx).Result()
+	if err != nil {
+		panic(fmt.Sprintf("Failed to initialize Redis client: %v", err))
+	}
 
 }
 
@@ -36,6 +42,11 @@ func InitRedisClient2() {
 		DB:       1,
 		Password: os.Getenv("dp_pass"),
 	})
+	// Check if the Redis client can connect
+	_, err := CreateClient2.Ping(Ctx2).Result()
+	if err != nil {
+		panic(fmt.Sprintf("Failed to initialize Redis client: %v", err))
+	}
 
 }
 
